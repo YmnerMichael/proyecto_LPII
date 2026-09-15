@@ -1,5 +1,6 @@
 package com.empresa.healthcheck.service.impl;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.empresa.healthcheck.dto.DetalleVentaRequestDTO;
@@ -17,12 +18,18 @@ import com.empresa.healthcheck.repository.ClienteRepository;
 import com.empresa.healthcheck.repository.ProductoRepository;
 import com.empresa.healthcheck.repository.VentaRepository;
 import com.empresa.healthcheck.service.service.VentaService;
-
+import lombok.extern.slf4j.Slf4j;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+
+@Slf4j
 @Service
 public class VentaServiceImpl implements VentaService {
+
+    private static final Set<String> CAMPOS_PERMITIDOS = Set.of("id", "fecha", "total", "estado");
+
     private final VentaRepository ventaRepository;
     private final ClienteRepository clienteRepository;
     private final ProductoRepository productoRepository;
@@ -41,7 +48,7 @@ public class VentaServiceImpl implements VentaService {
     @Transactional
     public VentaResponseDTO registrar(VentaRequestDTO request) {
         Cliente cliente = clienteRepository.findById(request.getClienteId())
-                .orElseThrow(() ->new RecursosNoEncontradoException("Cliente no encontrado con id: "+ request.getClienteId()));
+                .orElseThrow(() -> new RecursosNoEncontradoException("Cliente no encontrado con id: " + request.getClienteId()));
 
         if (!Boolean.TRUE.equals(cliente.getEstado())) {
             throw new ReglaNegocioException("No se puede registrar una venta para un cliente inactivo");
@@ -54,18 +61,17 @@ public class VentaServiceImpl implements VentaService {
 
         BigDecimal total = BigDecimal.ZERO;
 
-        for (DetalleVentaRequestDTO item: request.getDetalles()) {
+        for (DetalleVentaRequestDTO item : request.getDetalles()) {
             Producto producto = productoRepository.findById(item.getProductoId()).orElseThrow(() ->
-                    new RecursosNoEncontradoException("Producto no encontrado con id: "+ item.getProductoId()));
+                    new RecursosNoEncontradoException("Producto no encontrado con id: " + item.getProductoId()));
 
             if (!Boolean.TRUE.equals(producto.getEstado())) {
-                throw new ReglaNegocioException("El producto "+ producto.getNombre()+ " se encuentra inactivo");
+                throw new ReglaNegocioException("El producto " + producto.getNombre() + " se encuentra inactivo");
             }
 
-            if (producto.getStock()< item.getCantidad()) {
-
-                throw new ReglaNegocioException("Stock insuficiente para "+ producto.getNombre()+ ". Disponible: "+ producto.getStock()
-                        + ", solicitado: "+ item.getCantidad());
+            if (producto.getStock() < item.getCantidad()) {
+                throw new ReglaNegocioException("Stock insuficiente para " + producto.getNombre() + ". Disponible: " + producto.getStock()
+                        + ", solicitado: " + item.getCantidad());
             }
 
             BigDecimal subtotal = producto.getPrecio().multiply(BigDecimal.valueOf(item.getCantidad()));
@@ -81,12 +87,12 @@ public class VentaServiceImpl implements VentaService {
 
             total = total.add(subtotal);
 
-            producto.setStock(producto.getStock()- item.getCantidad());
+            producto.setStock(producto.getStock() - item.getCantidad());
         }
 
         venta.setTotal(total);
 
-        Venta guardada =ventaRepository.save(venta);
+        Venta guardada = ventaRepository.save(venta);
 
         return convertirResponse(guardada);
     }
@@ -94,9 +100,8 @@ public class VentaServiceImpl implements VentaService {
     @Override
     @Transactional(readOnly = true)
     public VentaResponseDTO buscar(Long id) {
-
         Venta venta = ventaRepository.findById(id).orElseThrow(() ->
-                new RecursosNoEncontradoException("Venta no encontrada con id: "+ id));
+                new RecursosNoEncontradoException("Venta no encontrada con id: " + id));
         return convertirResponse(venta);
     }
 
@@ -106,8 +111,41 @@ public class VentaServiceImpl implements VentaService {
         return ventaRepository.findAll().stream().map(this::convertirResponse).toList();
     }
 
-    private VentaResponseDTO convertirResponse(Venta venta) {
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponseDTO> buscar(Long clienteId, EstadoVenta estado, LocalDateTime desde, LocalDateTime hasta, String ordenarPor, String direccion) {
+        long inicio = System.currentTimeMillis();
+        log.info("Inicio búsqueda de ventas - clienteId={}, estado={}, desde={}, hasta={}, ordenarPor={}, direccion={}",
+                clienteId, estado, desde, hasta, ordenarPor, direccion);
 
+        // 1. Validación de rango de fechas
+        if (desde != null && hasta != null && desde.isAfter(hasta)) {
+            throw new ReglaNegocioException("La fecha 'desde' no puede ser posterior a la fecha 'hasta'");
+        }
+
+        // 2. Validación de lista blanca para ordenamiento
+        String campoOrden = (ordenarPor != null && !ordenarPor.isBlank()) ? ordenarPor : "fecha";
+        if (!CAMPOS_PERMITIDOS.contains(campoOrden)) {
+            throw new ReglaNegocioException("El campo de ordenamiento '" + campoOrden + "' no está permitido. Campos válidos: " + CAMPOS_PERMITIDOS);
+        }
+
+        // 3. Dirección de ordenamiento
+        Sort.Direction dir = "ASC".equalsIgnoreCase(direccion)
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Sort sort = Sort.by(dir, campoOrden);
+
+        // 4. Ejecutar consulta
+        List<Venta> ventas = ventaRepository.buscar(clienteId, estado, desde, hasta, sort);
+        List<VentaResponseDTO> respuesta = ventas.stream().map(this::convertirResponse).toList();
+
+        long duracion = System.currentTimeMillis() - inicio;
+        log.info("Fin búsqueda de ventas - {} registros encontrados. Duración: {} ms", respuesta.size(), duracion);
+
+        return respuesta;
+    }
+
+    private VentaResponseDTO convertirResponse(Venta venta) {
         List<DetalleVentaResponseDTO> detalles =
                 venta.getDetalles()
                         .stream()
@@ -121,7 +159,7 @@ public class VentaServiceImpl implements VentaService {
                                 )
                         ).toList();
 
-        String clienteNombre = venta.getCliente().getNombres()+ " "+ venta.getCliente().getApellidos();
+        String clienteNombre = venta.getCliente().getNombres() + " " + venta.getCliente().getApellidos();
 
         return new VentaResponseDTO(
                 venta.getId(),

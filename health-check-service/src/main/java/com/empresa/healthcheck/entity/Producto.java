@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "productos")
@@ -22,6 +23,9 @@ public class Producto {
     @Column(nullable = false, length = 100)
     private String nombre;
 
+    @Column(length = 255)
+    private String descripcion; // <-- AGREGADO
+
     @Column(nullable = false)
     private BigDecimal precio;
 
@@ -35,10 +39,22 @@ public class Producto {
     @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
 
+    @Column(name = "fecha_creacion", updatable = false)
+    private LocalDateTime fechaCreacion; // <-- AGREGADO
+
+    @Column(name = "fecha_modificacion")
+    private LocalDateTime fechaModificacion; // <-- AGREGADO
+
     @PrePersist
     public void prePersist() {
         if (estado == null) {
             estado = true;
         }
+        this.fechaCreacion = LocalDateTime.now(); // <-- Asigna fecha automáticamente al crear
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.fechaModificacion = LocalDateTime.now(); // <-- Asigna fecha automáticamente al actualizar
     }
 }
