@@ -1,53 +1,53 @@
-package com.empresa.healthcheck.entity;
+    package com.empresa.healthcheck.entity;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+    import jakarta.persistence.*;
+    import lombok.AllArgsConstructor;
+    import lombok.Getter;
+    import lombok.NoArgsConstructor;
+    import lombok.Setter;
 
-import java.math.BigDecimal;
+    import java.math.BigDecimal;
 
-@Entity
-@Table(name = "detalle_ventas")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-public class DetalleVenta {
+    @Entity
+    @Table(name = "detalle_ventas")
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public class DetalleVenta {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "venta_id",
-            nullable = false
-    )
-    private Venta venta;
+        @ManyToOne(fetch = FetchType.LAZY, optional = false)
+        @JoinColumn(
+                name = "venta_id",
+                nullable = false
+        )
+        private Venta venta;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(
-            name = "producto_id",
-            nullable = false
-    )
-    private Producto producto;
+        @ManyToOne(fetch = FetchType.LAZY, optional = false)
+        @JoinColumn(
+                name = "producto_id",
+                nullable = false
+        )
+        private Producto producto;
 
-    @Column(nullable = false)
-    private Integer cantidad;
+        @Column(nullable = false)
+        private Integer cantidad;
 
-    @Column(
-            nullable = false,
-            precision = 10,
-            scale = 2
-    )
-    private BigDecimal precio;
+        @Column(
+                nullable = false,
+                precision = 10,
+                scale = 2
+        )
+        private BigDecimal precio;
 
-    @Column(
-            nullable = false,
-            precision = 12,
-            scale = 2
-    )
-    private BigDecimal subtotal;
-}
+        @Column(
+                nullable = false,
+                precision = 12,
+                scale = 2
+        )
+        private BigDecimal subtotal;
+    }

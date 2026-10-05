@@ -11,6 +11,13 @@ import com.empresa.healthcheck.service.service.ClienteService;
 
 @RestController
 @RequestMapping("/api/v1/clientes")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+})
 public class ClienteController {
 
     private final ClienteService clienteService;
