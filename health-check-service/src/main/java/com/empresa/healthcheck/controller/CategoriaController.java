@@ -13,6 +13,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categorias")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+})
 public class CategoriaController {
 
     private final CategoriaService categoriaService;

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class   GlobalExceptionHandler {
 
     /*
      * Recurso no encontrado
