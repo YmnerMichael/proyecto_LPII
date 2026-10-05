@@ -10,6 +10,13 @@ import com.empresa.healthcheck.service.service.ProductoService;
 
 @RestController
 @RequestMapping("/api/v1/productos")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*", methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+})
 public class ProductoController {
 
     private final ProductoService productoService;
